@@ -4,7 +4,10 @@ import java.io.File;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Stack;
 
 import com.joaorezende.moodmetrics.ReaderClass;
 
@@ -46,21 +49,61 @@ public class App {
             files = App.listFilesForFolder(fileArgs);
         }
 
-        List<ReaderClass> readerClasses = new ArrayList<>();
+        Stack<String> superClasses = new Stack<String>();
 
         for (File file : files) {
+            if (!App.getExtensionFilename(file.getAbsolutePath()).equals("java"))
+                continue;
+
             Path pathFile = Paths.get(file.getAbsolutePath());
             ReaderClass readerClass = new ReaderClass(pathFile);
-            readerClasses.add(readerClass);
+
+            MoodMetrics.addClasse(readerClass);
+
+            System.out.println("Class: " + readerClass.getClassName());
 
             MoodMetrics.sumPrivateVars(readerClass.getNumPrivateVars());
             MoodMetrics.sumPrivateMethods(readerClass.getNumPrivateMethods());
+
+            if (!readerClass.getSuperclassName().equals("null")) {
+                System.out.println("Superclass: " + readerClass.getSuperclassName());
+                superClasses.push(readerClass.getSuperclassName());
+            }
         }
 
-        for (ReaderClass readerClass : readerClasses) {
+        System.out.println("----------------------------------------------");
+
+        while (!superClasses.isEmpty()) {
+            String superClassName = superClasses.pop();
+            System.out.print("Superclass: " + superClassName);
+
+            ReaderClass superReaderClass = MoodMetrics.getReaderClass(superClassName);
+
+            if (superReaderClass == null) {
+                System.out.println(" - NULL");
+                continue;
+            }
+
+            System.out.print("\n");
+
+            MoodMetrics.sumInheritedVars(superReaderClass.getNumDefaultVars());
+            MoodMetrics.sumInheritedVars(superReaderClass.getNumPublicVars());
+            MoodMetrics.sumInheritedVars(superReaderClass.getNumProtectedVars());
+
+            MoodMetrics.sumInheritedMethods(superReaderClass.getNumDefaultMethods());
+            MoodMetrics.sumInheritedMethods(superReaderClass.getNumPublicMethods());
+            MoodMetrics.sumInheritedMethods(superReaderClass.getNumProtectedMethods());
+        }
+
+        for (Map.Entry<String, ReaderClass> readerClassHash : MoodMetrics.getReaderClasses().entrySet()) {
+            ReaderClass readerClass = readerClassHash.getValue();
+
             System.out.println(readerClass.getClassName());
+
             System.out.printf("AHF: %.2f\n", MoodMetrics.AHF(readerClass.getNumPrivateVars()));
             System.out.printf("MHF: %.2f\n", MoodMetrics.MHF(readerClass.getNumPrivateMethods()));
+            System.out.printf("AIF: %.2f\n", MoodMetrics.AIF(readerClass));
+            System.out.printf("MIF: %.2f\n", MoodMetrics.MIF(readerClass));
         }
     }
 }

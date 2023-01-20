@@ -1,13 +1,9 @@
 package com.joaorezende.moodmetrics;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 import org.eclipse.jdt.core.dom.AST;
 import org.eclipse.jdt.core.dom.ASTParser;
@@ -15,6 +11,8 @@ import org.eclipse.jdt.core.dom.ASTVisitor;
 import org.eclipse.jdt.core.dom.CompilationUnit;
 import org.eclipse.jdt.core.dom.FieldDeclaration;
 import org.eclipse.jdt.core.dom.MethodDeclaration;
+import org.eclipse.jdt.core.dom.Type;
+import org.eclipse.jdt.core.dom.TypeDeclaration;
 import org.eclipse.jdt.core.dom.VariableDeclarationFragment;
 import org.eclipse.jdt.core.dom.VariableDeclarationStatement;
 
@@ -23,9 +21,12 @@ public class ReaderClass {
     private String strFile;
 
     private String className;
+    private Type superClass;
+    private int numDefaultVars = 0;
     private int numPublicVars = 0;
     private int numPrivateVars = 0;
     private int numProtectedVars = 0;
+    private int numDefaultMethods = 0;
     private int numPublicMethods = 0;
     private int numPrivateMethods = 0;
     private int numProtectedMethods = 0;
@@ -73,8 +74,10 @@ public class ReaderClass {
                 } else if (node.getParent() instanceof VariableDeclarationStatement) {
                     modifiers = ((VariableDeclarationStatement) node.getParent()).getModifiers();
                 }
-
-                if (modifiers == 1) {
+                
+                if (modifiers == 0) {
+                    numDefaultVars++;
+                } else if (modifiers == 1) {
                     numPublicVars++;
                 } else if (modifiers == 2) {
                     numPrivateVars++;
@@ -88,7 +91,9 @@ public class ReaderClass {
             public boolean visit(MethodDeclaration node) {
                 int modifiers = node.getModifiers();
 
-                if (modifiers == 1) {
+                if (modifiers == 0) {
+                    numDefaultMethods++;
+                } else if (modifiers == 1) {
                     numPublicMethods++;
                 } else if (modifiers == 2) {
                     numPrivateMethods++;
@@ -98,11 +103,20 @@ public class ReaderClass {
 
                 return false;
             }
+
+            public boolean visit(TypeDeclaration node) {
+                superClass = node.getSuperclassType();
+                return true;
+            }
         });
     }
 
     public String getClassName() {
         return className;
+    }
+
+    public int getNumDefaultVars() {
+        return numDefaultVars;
     }
 
     public int getNumPublicVars() {
@@ -117,6 +131,10 @@ public class ReaderClass {
         return numProtectedVars;
     }
 
+    public int getNumDefaultMethods() {
+        return numDefaultMethods;
+    }
+
     public int getNumPublicMethods() {
         return numPublicMethods;
     }
@@ -127,5 +145,11 @@ public class ReaderClass {
 
     public int getNumProtectedMethods() {
         return numProtectedMethods;
+    }
+
+    public String getSuperclassName() {
+        if (superClass == null)
+            return "null";
+        return superClass.toString();
     }
 }
