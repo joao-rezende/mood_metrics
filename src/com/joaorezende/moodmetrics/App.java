@@ -6,10 +6,7 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Stack;
-
-import com.joaorezende.moodmetrics.ReaderClass;
 
 public class App {
     public static List<File> listFilesForFolder(final File folder) {
@@ -35,8 +32,7 @@ public class App {
 
         File fileArgs = new File(path);
 
-        if (!fileArgs.isDirectory()
-                && (!fileArgs.exists() || !App.getExtensionFilename(fileArgs.getAbsolutePath()).equals("java"))) {
+        if (!fileArgs.isDirectory() && (!fileArgs.exists() || !App.getExtensionFilename(fileArgs.getAbsolutePath()).equals("java"))) {
             System.out.println("Nenhum arquivo .java foi encontrado");
             System.exit(0);
         }
@@ -49,7 +45,8 @@ public class App {
             files = App.listFilesForFolder(fileArgs);
         }
 
-        Stack<String> superClasses = new Stack<String>();
+        Stack<ReaderClass> classesWithSuperclass = new Stack<>();
+        HashMap<String, ReaderClass> readerClassesHashMap = new HashMap<>();
 
         for (File file : files) {
             if (!App.getExtensionFilename(file.getAbsolutePath()).equals("java"))
@@ -58,52 +55,67 @@ public class App {
             Path pathFile = Paths.get(file.getAbsolutePath());
             ReaderClass readerClass = new ReaderClass(pathFile);
 
-            MoodMetrics.addClasse(readerClass);
+            readerClassesHashMap.put(readerClass.getClassName(), readerClass);
 
-            System.out.println("Class: " + readerClass.getClassName());
-
-            MoodMetrics.sumPrivateVars(readerClass.getNumPrivateVars());
-            MoodMetrics.sumPrivateMethods(readerClass.getNumPrivateMethods());
-
-            if (!readerClass.getSuperclassName().equals("null")) {
-                System.out.println("Superclass: " + readerClass.getSuperclassName());
-                superClasses.push(readerClass.getSuperclassName());
+            MoodMetrics.sumHiddenAttributes(readerClass.getNumHiddenAttributes());
+            MoodMetrics.sumHiddenMethods(readerClass.getNumHiddenMethods());
+            
+            if (readerClass.getSuperclassName() != null) {
+                classesWithSuperclass.add(readerClass);
             }
         }
 
-        System.out.println("----------------------------------------------");
+        while(!classesWithSuperclass.isEmpty()) {
+            ReaderClass readerClass = classesWithSuperclass.pop();
 
-        while (!superClasses.isEmpty()) {
-            String superClassName = superClasses.pop();
-            System.out.print("Superclass: " + superClassName);
+            ReaderClass readerSuperclass = readerClassesHashMap.get(readerClass.getSuperclassName());
 
-            ReaderClass superReaderClass = MoodMetrics.getReaderClass(superClassName);
-
-            if (superReaderClass == null) {
-                System.out.println(" - NULL");
+            if (readerSuperclass == null) {
                 continue;
             }
 
-            System.out.print("\n");
-
-            MoodMetrics.sumInheritedVars(superReaderClass.getNumDefaultVars());
-            MoodMetrics.sumInheritedVars(superReaderClass.getNumPublicVars());
-            MoodMetrics.sumInheritedVars(superReaderClass.getNumProtectedVars());
-
-            MoodMetrics.sumInheritedMethods(superReaderClass.getNumDefaultMethods());
-            MoodMetrics.sumInheritedMethods(superReaderClass.getNumPublicMethods());
-            MoodMetrics.sumInheritedMethods(superReaderClass.getNumProtectedMethods());
+            String attributesClass = readerClass.getAttributes();
+            int numInheritedAttributes = 0;
+            for (String inheritableAttribute : readerSuperclass.getInheritableAttributes()) {
+                if (!attributesClass.contains(inheritableAttribute)) {
+                    MoodMetrics.sumInheritedAttributes(1);
+                    numInheritedAttributes++;
+                }
+            }
+            readerClass.setNumInheritedAttributes(numInheritedAttributes);
+            
+            String methodsClass = readerClass.getMethods();
+            int numInheritedMethod = 0;
+            for (String inheritableMethod : readerSuperclass.getInheritableMethods()) {
+                if (!methodsClass.contains(inheritableMethod)) {
+                    MoodMetrics.sumInheritedMethods(1);
+                    numInheritedMethod++;
+                }
+            }
+            readerClass.setNumInheritedMethods(numInheritedMethod);
         }
 
-        for (Map.Entry<String, ReaderClass> readerClassHash : MoodMetrics.getReaderClasses().entrySet()) {
-            ReaderClass readerClass = readerClassHash.getValue();
-
+        for (ReaderClass readerClass : readerClassesHashMap.values()) {
             System.out.println(readerClass.getClassName());
 
-            System.out.printf("AHF: %.2f\n", MoodMetrics.AHF(readerClass.getNumPrivateVars()));
-            System.out.printf("MHF: %.2f\n", MoodMetrics.MHF(readerClass.getNumPrivateMethods()));
-            System.out.printf("AIF: %.2f\n", MoodMetrics.AIF(readerClass));
-            System.out.printf("MIF: %.2f\n", MoodMetrics.MIF(readerClass));
+            System.out.printf("AHF: %.2f\n", MoodMetrics.AHF(readerClass.getNumHiddenAttributes()));
+            System.out.printf("MHF: %.2f\n", MoodMetrics.MHF(readerClass.getNumHiddenMethods()));
+
+            float AIF = 0;
+            float MIF = 0;
+            if (readerClass.getSuperclassName() != null) {
+                AIF = MoodMetrics.AIF(readerClass.getNumInheritedAttributes());
+                MIF = MoodMetrics.MIF(readerClass.getNumInheritedMethods());
+            }
+            System.out.printf("AIF: %.2f\n", AIF);
+            System.out.printf("MIF: %.2f\n", MIF);
+
+            System.out.println();
         }
+
+        System.out.println("Total hidden attributes: " + MoodMetrics.getTotalHiddenAttributes());
+        System.out.println("Total hidden method: " + MoodMetrics.getTotalHiddenMethods());
+        System.out.println("Total inherited attributes: " + MoodMetrics.getTotalInheritedAttributes());
+        System.out.println("Total inherited methods: " + MoodMetrics.getTotalInheritedMethods());
     }
 }

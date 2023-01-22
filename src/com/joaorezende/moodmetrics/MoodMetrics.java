@@ -1,96 +1,66 @@
 package com.joaorezende.moodmetrics;
 
-import java.io.Reader;
-import java.util.HashMap;
-
 public final class MoodMetrics {
-    private static int totalPrivateVars = 0;
-    private static int totalPrivateMethods = 0;
-    private static int totalInheritedVars = 0;
+    private static int totalHiddenAttributes = 0;
+    private static int totalHiddenMethods = 0;
+    private static int totalInheritedAttributes = 0;
     private static int totalInheritedMethods = 0;
-    private static HashMap<String, ReaderClass> readerClasses = new HashMap<String, ReaderClass>();
 
-    public static void sumPrivateVars(int number) {
-        totalPrivateVars += number;
+    public static void sumHiddenAttributes(int number) {
+        totalHiddenAttributes += number;
     }
 
-    public static void sumPrivateMethods(int number) {
-        totalPrivateMethods += number;
+    public static void sumHiddenMethods(int number) {
+        totalHiddenMethods += number;
     }
 
-    public static void sumInheritedVars(int number) {
-        totalInheritedVars += number;
+    public static void sumInheritedAttributes(int number) {
+        totalInheritedAttributes += number;
     }
 
     public static void sumInheritedMethods(int number) {
         totalInheritedMethods += number;
     }
 
-    public static float AHF(int numberPrivateVars) {
-        if (totalPrivateVars == 0)
-            return 0;
-
-        return (float) numberPrivateVars / (float) totalPrivateVars;
+    public static int getTotalHiddenAttributes() {
+        return totalHiddenAttributes;
     }
 
-    public static float MHF(int numberPrivateMethods) {
-        if (totalPrivateMethods == 0)
-            return 0;
-
-        return (float) numberPrivateMethods / (float) totalPrivateMethods;
+    public static int getTotalHiddenMethods() {
+        return totalHiddenMethods;
     }
 
-    public static float AIF(ReaderClass readerClass) {
-        if (readerClass.getSuperclassName().equals("null"))
-            return 0;
-
-        int inheritedVars = 0;
-
-        ReaderClass superClass = readerClasses.get(readerClass.getSuperclassName());
-
-        inheritedVars += superClass.getNumDefaultVars();
-        inheritedVars += superClass.getNumPublicVars();
-        inheritedVars += superClass.getNumProtectedVars();
-
-        inheritedVars += AIF(superClass);
-
-        return (float) inheritedVars / (float) totalInheritedVars;
+    public static int getTotalInheritedAttributes() {
+        return totalInheritedAttributes;
     }
 
-    public static float MIF(ReaderClass readerClass) {
-        if (readerClass.getSuperclassName().equals("null"))
+    public static int getTotalInheritedMethods() {
+        return totalInheritedMethods;
+    }
+
+    public static float AHF(int numberHiddenAttributes) {
+        if (totalHiddenAttributes == 0)
             return 0;
 
-        int inheritedMethods = 0;
+        return (float) numberHiddenAttributes / (float) totalHiddenAttributes;
+    }
 
-        ReaderClass superClass = readerClasses.get(readerClass.getSuperclassName());
+    public static float MHF(int numberHiddenMethods) {
+        if (totalHiddenMethods == 0)
+            return 0;
 
-        inheritedMethods += superClass.getNumDefaultMethods();
-        inheritedMethods += superClass.getNumPublicMethods();
-        inheritedMethods += superClass.getNumProtectedMethods();
+        return (float) numberHiddenMethods / (float) totalHiddenMethods;
+    }
 
-        inheritedMethods += MIF(superClass);
+    public static float AIF(int inheritedAttributes) {
+        if (totalInheritedAttributes == 0)
+            return 0;
+
+        return (float) inheritedAttributes / (float) totalInheritedAttributes;
+    }
+
+    public static float MIF(int inheritedMethods) {
 
         return (float) inheritedMethods / (float) totalInheritedMethods;
-    }
-
-    public static int getTotalPrivateVars() {
-        return totalPrivateVars;
-    }
-
-    public static int getTotalPrivateMethods() {
-        return totalPrivateMethods;
-    }
-
-    public static void addClasse(ReaderClass readerClass) {
-        readerClasses.put(readerClass.getClassName(), readerClass);
-    }
-
-    public static ReaderClass getReaderClass(String className) {
-        return readerClasses.get(className);
-    }
-
-    public static HashMap<String, ReaderClass> getReaderClasses() {
-        return readerClasses;
     }
 }
