@@ -6,6 +6,8 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Scanner;
 import java.util.Stack;
 
 public class App {
@@ -28,11 +30,27 @@ public class App {
     }
 
     public static void main(String[] args) throws Exception {
-        String path = args[0];
+        String path = args.length > 0 ? args[0] : "";
+        String formatReturn = args.length > 1 ? args[1] : "";
+
+        Scanner scanner = new Scanner(System.in);
+
+        if (path.isEmpty()) {
+            System.out.print("Digite o caminho do arquivo ou diretório: ");
+            path = scanner.nextLine();
+        }
+
+        if (formatReturn.isEmpty()) {
+            while (!formatReturn.equals("1") && !formatReturn.equals("2")) {
+                System.out.print("Qual o formato que deseja retornar (1 - PDF / 2 - Terminal): ");
+                formatReturn = scanner.nextLine();
+            }
+        }
 
         File fileArgs = new File(path);
 
-        if (!fileArgs.isDirectory() && (!fileArgs.exists() || !App.getExtensionFilename(fileArgs.getAbsolutePath()).equals("java"))) {
+        if (!fileArgs.isDirectory()
+                && (!fileArgs.exists() || !App.getExtensionFilename(fileArgs.getAbsolutePath()).equals("java"))) {
             System.out.println("Nenhum arquivo .java foi encontrado");
             System.exit(0);
         }
@@ -57,15 +75,30 @@ public class App {
 
             readerClassesHashMap.put(readerClass.getClassName(), readerClass);
 
+            MoodMetrics.sumDefinedAttributes(readerClass.getNumAttributes());
+            MoodMetrics.sumDefinedMethods(readerClass.getNumMethods());
             MoodMetrics.sumHiddenAttributes(readerClass.getNumHiddenAttributes());
             MoodMetrics.sumHiddenMethods(readerClass.getNumHiddenMethods());
-            
+
             if (readerClass.getSuperclassName() != null) {
                 classesWithSuperclass.add(readerClass);
             }
         }
 
-        while(!classesWithSuperclass.isEmpty()) {
+        for (Map.Entry<String, ReaderClass> readerClassEntry : readerClassesHashMap.entrySet()) {
+            ReaderClass readerClass = readerClassEntry.getValue();
+
+            for (String dataType : readerClass.getDataTypes()) {
+                if (readerClassesHashMap.get(dataType) != null && !readerClass.connectionExist(dataType)) {
+                    readerClass.addConnection(dataType);
+                }
+            }
+
+            MoodMetrics.sumConnections(readerClass.getConnections().size());
+            MoodMetrics.setTotalAvailableConnections(readerClassesHashMap.size());
+        }
+
+        while (!classesWithSuperclass.isEmpty()) {
             ReaderClass readerClass = classesWithSuperclass.pop();
 
             ReaderClass readerSuperclass = readerClassesHashMap.get(readerClass.getSuperclassName());
@@ -83,39 +116,26 @@ public class App {
                 }
             }
             readerClass.setNumInheritedAttributes(numInheritedAttributes);
-            
+
             String methodsClass = readerClass.getMethods();
             int numInheritedMethod = 0;
+
             for (String inheritableMethod : readerSuperclass.getInheritableMethods()) {
                 if (!methodsClass.contains(inheritableMethod)) {
                     MoodMetrics.sumInheritedMethods(1);
                     numInheritedMethod++;
+                } else {
+                    MoodMetrics.sumOverrideMethods(1);
                 }
             }
             readerClass.setNumInheritedMethods(numInheritedMethod);
+            MoodMetrics.sumOverridePossibilities(readerSuperclass.getInheritableMethods().size());
         }
 
-        for (ReaderClass readerClass : readerClassesHashMap.values()) {
-            System.out.println(readerClass.getClassName());
-
-            System.out.printf("AHF: %.2f\n", MoodMetrics.AHF(readerClass.getNumHiddenAttributes()));
-            System.out.printf("MHF: %.2f\n", MoodMetrics.MHF(readerClass.getNumHiddenMethods()));
-
-            float AIF = 0;
-            float MIF = 0;
-            if (readerClass.getSuperclassName() != null) {
-                AIF = MoodMetrics.AIF(readerClass.getNumInheritedAttributes());
-                MIF = MoodMetrics.MIF(readerClass.getNumInheritedMethods());
-            }
-            System.out.printf("AIF: %.2f\n", AIF);
-            System.out.printf("MIF: %.2f\n", MIF);
-
-            System.out.println();
+        if (formatReturn.equals("1")) {
+            Result.pdf();
+        } else {
+            Result.terminal();
         }
-
-        System.out.println("Total hidden attributes: " + MoodMetrics.getTotalHiddenAttributes());
-        System.out.println("Total hidden method: " + MoodMetrics.getTotalHiddenMethods());
-        System.out.println("Total inherited attributes: " + MoodMetrics.getTotalInheritedAttributes());
-        System.out.println("Total inherited methods: " + MoodMetrics.getTotalInheritedMethods());
     }
 }

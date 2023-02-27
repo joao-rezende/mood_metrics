@@ -1,0 +1,3 @@
+<configuration>
+    <logger name="com.itextpdf" level="OFF"/>
+</configuration>

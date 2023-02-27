@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.eclipse.jdt.core.dom.AST;
+import org.eclipse.jdt.core.dom.ASTNode;
 import org.eclipse.jdt.core.dom.ASTParser;
 import org.eclipse.jdt.core.dom.ASTVisitor;
 import org.eclipse.jdt.core.dom.CompilationUnit;
@@ -26,11 +27,14 @@ public class ReaderClass {
     private List<String> attributes = new ArrayList<>();
     private List<String> inheritableAttributes = new ArrayList<>();
     private List<String> methods = new ArrayList<>();
+    private List<String> overrideMethods = new ArrayList<>();
     private List<String> inheritableMethods = new ArrayList<>();
     private int numHiddenAttributes = 0;
     private int numHiddenMethods = 0;
     private int numInheritedAttributes = 0;
     private int numInheritedMethods = 0;
+    private List<String> connections = new ArrayList<>();
+    private List<String> dataTypes = new ArrayList<>();
 
     public ReaderClass(Path path) {
         if (!this.readFile(path))
@@ -74,6 +78,9 @@ public class ReaderClass {
             FieldDeclaration[] attributes = typeDeclaration.getFields();
 
             for (FieldDeclaration attribute : attributes) {
+                Type type = attribute.getType();
+                dataTypes.add(type.toString());
+
                 String name = attribute.fragments().get(0).toString();
                 if (name.indexOf("=") != -1) {
                     name = name.substring(0, name.indexOf("="));
@@ -95,6 +102,11 @@ public class ReaderClass {
 
         cu.accept(new ASTVisitor() {
             public boolean visit(MethodDeclaration node) {
+                ASTNode parent = node.getParent();
+                String parentName = className;
+                if (parent instanceof TypeDeclaration) {
+                    parentName = ((TypeDeclaration) parent).getName().toString();
+                }
                 int modifiers = node.getModifiers();
 
                 String name = node.getName().toString() + "(";
@@ -108,7 +120,7 @@ public class ReaderClass {
                 }
                 name += ")";
 
-                if (!methods.contains(name)) {
+                if (className.equals(parentName) && !node.isConstructor() && !methods.contains(name)) {
                     methods.add(name);
 
                     if (Modifier.isPrivate(modifiers)) {
@@ -124,7 +136,11 @@ public class ReaderClass {
             public boolean visit(TypeDeclaration node) {
                 superClass = node.getSuperclassType();
 
-                return true;
+                if (superClass != null) {
+                    connections.add(getSuperclassName());
+                }
+
+                return super.visit(node);
             }
         });
     }
@@ -161,6 +177,14 @@ public class ReaderClass {
         return this.numInheritedMethods = numInheritedMethods;
     }
 
+    public int getNumAttributes() {
+        return attributes.size();
+    }
+
+    public int getNumMethods() {
+        return methods.size();
+    }
+
     public int getNumInheritedAttributes() {
         return numInheritedAttributes;
     }
@@ -191,7 +215,38 @@ public class ReaderClass {
         return strMethods;
     }
 
+    public String getOverrideMethods() {
+        String strMethods = "";
+        for (String method : overrideMethods) {
+            strMethods += method + " ";
+        }
+
+        return strMethods;
+    }
+
     public List<String> getInheritableMethods() {
         return inheritableMethods;
+    }
+
+    public List<String> getConnections() {
+        return connections;
+    }
+
+    public Boolean connectionExist(String className) {
+        for (String connection : connections) {
+            if (connection.equals(className)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    public void addConnection(String className) {
+        connections.add(className);
+    }
+
+    public List<String> getDataTypes() {
+        return dataTypes;
     }
 }
