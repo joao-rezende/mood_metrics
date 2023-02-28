@@ -1,0 +1,18 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"type": "java (buildArtifact)",
+			"mainClass": "com.joaorezende.moodmetrics.App",
+			"targetPath": "${workspaceFolder}/${workspaceFolderBasename}.jar",
+			"elements": [
+				"${compileOutput:json}",
+				"${dependencies:json}",
+				"${compileOutput:mood_metrics_eca6a18c}",
+				"${dependencies:mood_metrics_eca6a18c}"
+			],
+			"problemMatcher": [],
+			"label": "java (buildArtifact): mood_metrics"
+		}
+	]
+}
