@@ -129,8 +129,8 @@ public final class MoodMetrics {
 
     public static float CF() {
         if (totalAvailableConnections <= 1)
-            return -1;
+            return 0;
 
-        return (float) totalConnections / ((float) (totalOverridePossibilities ^ 2) - (float) totalAvailableConnections);
+        return (float) totalConnections / ((float) (totalAvailableConnections ^ 2) - (float) totalAvailableConnections);
     }
 }
