@@ -36,7 +36,7 @@ public class Result {
 
     public static void pdf() {
         // Cria um novo arquivo PDF
-        File file = new File("results/Result_Mood_Metrics.pdf");
+        File file = new File("Result_Mood_Metrics.pdf");
         try {
             file.createNewFile();
         } catch (IOException e) {
@@ -54,7 +54,7 @@ public class Result {
         // Cria um novo documento iText
         Document doc = new Document(pdfDoc);
 
-        doc.add(new Paragraph("Mood Metrics"));
+        doc.add(new Paragraph("Medidor MOOD"));
         doc.add(new Paragraph(generateMetrics()));
         doc.add(new Paragraph(generateTotal()));
 
@@ -63,7 +63,7 @@ public class Result {
     }
 
     public static void terminal() {
-        System.out.println("Mood Metrics");
+        System.out.println("Medidor MOOD");
         System.out.println();
         System.out.println(generateMetrics());
         System.out.println(generateTotal());

@@ -1,2 +1,2 @@
-# mood_metrics
-Application for measuring MOOD metrics
+# Medidor MOOD
+Aplicação para calcular as métricas MOOD de um projeto JAVA.
